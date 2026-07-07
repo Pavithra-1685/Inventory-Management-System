@@ -20,7 +20,7 @@ export default function LoginPage() {
     onSuccess: ({ data }) => {
       login(data.user, data.token);
       toast.success(`Welcome back, ${data.user.name}!`);
-      navigate('/');
+      setTimeout(() => navigate('/'), 0);
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Login failed');
