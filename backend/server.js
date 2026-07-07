@@ -15,6 +15,7 @@ dotenv.config();
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
+const User = require('./models/User');
 
 // Route imports
 const authRoutes = require('./routes/auth');
@@ -30,8 +31,34 @@ const reportRoutes = require('./routes/reports');
 const dashboardRoutes = require('./routes/dashboard');
 const activityRoutes = require('./routes/activity');
 
+const ensureDefaultUsers = async () => {
+  try {
+    const defaultUsers = [
+      { name: 'Admin User', email: 'admin@inventory.com', password: 'Admin@123', role: 'admin', phone: '9876543210' },
+      { name: 'John Manager', email: 'manager@inventory.com', password: 'Manager@123', role: 'manager', phone: '9876543211' },
+      { name: 'Jane Staff', email: 'staff@inventory.com', password: 'Staff@123', role: 'staff', phone: '9876543212' },
+    ];
+
+    const createdUsers = [];
+    for (const userData of defaultUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+      if (!existingUser) {
+        createdUsers.push(await User.create(userData));
+      }
+    }
+
+    if (createdUsers.length > 0) {
+      logger.info(`Default demo users created: ${createdUsers.map((u) => u.email).join(', ')}`);
+    } else {
+      logger.info('Default demo users already exist');
+    }
+  } catch (error) {
+    logger.error(`Default user seeding error: ${error.message}`);
+  }
+};
+
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => ensureDefaultUsers());
 
 const app = express();
 
