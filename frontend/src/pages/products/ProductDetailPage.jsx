@@ -25,7 +25,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const barcodeUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products/${product._id}/barcode`;
+  const barcodeUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products/${product._id}/barcode?token=${localStorage.getItem('token') || ''}`;
 
   return (
     <div className="space-y-6">

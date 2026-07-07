@@ -12,7 +12,7 @@ export default function SaleDetailPage() {
     queryFn: async () => (await api.get(`/sales/${id}`)).data.data,
   });
   if (isLoading) return <PageLoader />;
-  const handleInvoice = () => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sales/${id}/invoice`, '_blank');
+  const handleInvoice = () => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sales/${id}/invoice?token=${localStorage.getItem('token') || ''}`, '_blank');
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

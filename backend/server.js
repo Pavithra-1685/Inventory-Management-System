@@ -94,11 +94,15 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://localhost:5173',
   'https://localhost:3000'
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .map(origin => origin.replace(/\/$/, ''));
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/i.test(origin)) {
+    if (!origin) return callback(null, true);
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(normalizedOrigin) || /\.vercel\.app$/i.test(normalizedOrigin)) {
       callback(null, true);
     } else {
       callback(null, false);

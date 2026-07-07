@@ -82,7 +82,7 @@ export default function SalesPage() {
 
   const handleDownloadInvoice = (id) => {
     const token = localStorage.getItem('token');
-    window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sales/${id}/invoice`, '_blank');
+    window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sales/${id}/invoice?token=${token || ''}`, '_blank');
   };
 
   return (
