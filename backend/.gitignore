@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment Variables — never commit secrets
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Uploads directory (generated at runtime)
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
