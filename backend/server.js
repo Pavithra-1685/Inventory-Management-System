@@ -88,6 +88,19 @@ if (process.env.NODE_ENV === 'development') {
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Root route
+app.get('/', (req, res) => {
+  if (process.env.FRONTEND_URL) {
+    return res.redirect(process.env.FRONTEND_URL);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'InventoryPro API is running',
+    health: '/api/health'
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
