@@ -6,11 +6,12 @@ const { sendEmail, passwordResetTemplate } = require('../utils/sendEmail');
 // Helper: send token response
 const sendTokenResponse = (user, statusCode, res) => {
   const token = user.getSignedJwtToken();
+  const isProduction = process.env.NODE_ENV === 'production';
   const options = {
     expires: new Date(Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE) * 24 * 60 * 60 * 1000),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax'
   };
   res.status(statusCode)
     .cookie('token', token, options)
@@ -83,7 +84,13 @@ exports.logout = async (req, res) => {
     description: `User logged out: ${req.user.email}`,
     ipAddress: req.ip
   });
-  res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax'
+  });
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
