@@ -3,9 +3,11 @@ const APIFeatures = require('../utils/apiFeatures');
 
 exports.getCategories = async (req, res) => {
   const features = new APIFeatures(Category.find().populate('productCount'), req.query)
-    .search(['name']).filter().sort().paginate();
-  const [categories, total] = await Promise.all([features.query, Category.countDocuments()]);
-  res.status(200).json({ success: true, count: categories.length, total, data: categories });
+    .search(['name']).filter().sort();
+  const total = await features.count();
+  features.paginate();
+  const categories = await features.query;
+  res.status(200).json({ success: true, count: categories.length, total, pages: Math.ceil(total / features.limit), data: categories });
 };
 
 exports.getCategory = async (req, res) => {

@@ -5,8 +5,10 @@ const ActivityLog = require('../models/ActivityLog');
 
 exports.getCustomers = async (req, res) => {
   const features = new APIFeatures(Customer.find(), req.query)
-    .search(['name', 'email', 'phone']).filter().sort().paginate();
-  const [customers, total] = await Promise.all([features.query, Customer.countDocuments()]);
+    .search(['name', 'email', 'phone']).filter().sort();
+  const total = await features.count();
+  features.paginate();
+  const customers = await features.query;
   res.status(200).json({ success: true, count: customers.length, total, pages: Math.ceil(total / (features.limit || 20)), data: customers });
 };
 

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Purchase = require('../models/Purchase');
 const Product = require('../models/Product');
 const Supplier = require('../models/Supplier');
@@ -9,8 +10,10 @@ exports.getPurchases = async (req, res) => {
   const features = new APIFeatures(
     Purchase.find().populate('supplier', 'companyName').populate('createdBy', 'name'),
     req.query
-  ).filter().sort().paginate();
-  const [purchases, total] = await Promise.all([features.query, Purchase.countDocuments()]);
+  ).filter().sort();
+  const total = await features.count();
+  features.paginate();
+  const purchases = await features.query;
   res.status(200).json({ success: true, count: purchases.length, total, pages: Math.ceil(total / (features.limit || 20)), data: purchases });
 };
 
@@ -38,33 +41,70 @@ exports.updatePurchase = async (req, res) => {
 };
 
 exports.receivePurchase = async (req, res) => {
-  const purchase = await Purchase.findById(req.params.id).populate('items.product');
-  if (!purchase) return res.status(404).json({ success: false, message: 'Purchase not found' });
-  if (purchase.status === 'received') return res.status(400).json({ success: false, message: 'Purchase already received' });
+  const session = await mongoose.startSession();
+  let receivedPurchase;
 
-  for (const item of purchase.items) {
-    const product = await Product.findById(item.product._id || item.product);
-    if (product) {
-      const previousQty = product.quantity;
-      product.quantity += item.quantity;
-      await product.save();
-      await InventoryTransaction.create({
-        product: product._id, type: 'stock_in', quantity: item.quantity,
-        previousQuantity: previousQty, newQuantity: product.quantity,
-        unitCost: item.unitCost, totalCost: item.totalCost,
-        reference: purchase.purchaseNumber, referenceType: 'purchase',
-        referenceId: purchase._id, reason: `Received: PO ${purchase.purchaseNumber}`,
-        createdBy: req.user._id
-      });
-    }
+  try {
+    await session.withTransaction(async () => {
+      const purchase = await Purchase.findById(req.params.id).session(session);
+      if (!purchase) {
+        const error = new Error('Purchase not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (purchase.status === 'received') {
+        const error = new Error('Purchase already received');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      for (const item of purchase.items) {
+        const product = await Product.findOneAndUpdate(
+          { _id: item.product },
+          { $inc: { quantity: item.quantity } },
+          { new: false, session }
+        );
+
+        if (!product) {
+          const error = new Error(`Product not found: ${item.product}`);
+          error.statusCode = 404;
+          throw error;
+        }
+
+        const newQuantity = product.quantity + item.quantity;
+        await InventoryTransaction.create([{
+          product: product._id, type: 'stock_in', quantity: item.quantity,
+          previousQuantity: product.quantity, newQuantity,
+          unitCost: item.unitCost, totalCost: item.totalCost,
+          reference: purchase.purchaseNumber, referenceType: 'purchase',
+          referenceId: purchase._id, reason: `Received: PO ${purchase.purchaseNumber}`,
+          createdBy: req.user._id
+        }], { session });
+      }
+
+      purchase.status = 'received';
+      purchase.receivedAt = Date.now();
+      await purchase.save({ session });
+
+      await ActivityLog.create([{
+        user: req.user._id,
+        action: 'update',
+        module: 'purchase',
+        description: `Goods received for PO: ${purchase.purchaseNumber}`,
+        entityId: purchase._id,
+        entityType: 'Purchase',
+        ipAddress: req.ip
+      }], { session });
+
+      receivedPurchase = purchase;
+    });
+
+    res.status(200).json({ success: true, data: receivedPurchase, message: 'Goods received and stock updated' });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to receive purchase' });
+  } finally {
+    await session.endSession();
   }
-
-  purchase.status = 'received';
-  purchase.receivedAt = Date.now();
-  await purchase.save();
-
-  await ActivityLog.create({ user: req.user._id, action: 'update', module: 'purchase', description: `Goods received for PO: ${purchase.purchaseNumber}`, entityId: purchase._id, entityType: 'Purchase', ipAddress: req.ip });
-  res.status(200).json({ success: true, data: purchase, message: 'Goods received and stock updated' });
 };
 
 exports.deletePurchase = async (req, res) => {

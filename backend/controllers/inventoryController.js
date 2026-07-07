@@ -10,9 +10,11 @@ exports.getTransactions = async (req, res) => {
       .populate('product', 'name sku')
       .populate('createdBy', 'name'),
     req.query
-  ).filter().sort().paginate();
-  const [transactions, total] = await Promise.all([features.query, InventoryTransaction.countDocuments()]);
-  res.status(200).json({ success: true, count: transactions.length, total, data: transactions });
+  ).filter().sort();
+  const total = await features.count();
+  features.paginate();
+  const transactions = await features.query;
+  res.status(200).json({ success: true, count: transactions.length, total, pages: Math.ceil(total / features.limit), data: transactions });
 };
 
 // @desc  Adjust stock (manual)

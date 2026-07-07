@@ -2,8 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/ui/Loading';
-import { AlertTriangle, ArrowLeft, Barcode, Calendar, DollarSign, Layers, Package, User } from 'lucide-react';
-import { StatusBadge } from '../../components/ui/DataTable';
+import { AlertTriangle, ArrowLeft, Calendar, User } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -16,6 +15,15 @@ export default function ProductDetailPage() {
     }
   });
 
+  const { data: barcodeUrl } = useQuery({
+    queryKey: ['product-barcode', id],
+    enabled: !!product?._id,
+    queryFn: async () => {
+      const res = await api.get(`/products/${product._id}/barcode`, { responseType: 'blob' });
+      return URL.createObjectURL(res.data);
+    },
+  });
+
   if (isLoading) return <PageLoader />;
   if (error) {
     return (
@@ -24,8 +32,6 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-
-  const barcodeUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products/${product._id}/barcode?token=${localStorage.getItem('token') || ''}`;
 
   return (
     <div className="space-y-6">
@@ -94,9 +100,13 @@ export default function ProductDetailPage() {
           <div>
             <h2 className="text-sm font-black uppercase text-secondary border-b-2 border-accent pb-1 mb-4">Barcode</h2>
             <div className="border-3 border-primary p-4 bg-white flex flex-col items-center justify-center">
-              <img src={barcodeUrl} alt="Product Barcode" className="max-h-24 max-w-full" onError={(e) => {
-                e.target.style.display = 'none';
-              }} />
+              {barcodeUrl ? (
+                <img src={barcodeUrl} alt="Product Barcode" className="max-h-24 max-w-full" onError={(e) => {
+                  e.target.style.display = 'none';
+                }} />
+              ) : (
+                <div className="h-24 flex items-center justify-center text-xs font-bold text-secondary">Loading barcode...</div>
+              )}
               <p className="font-mono text-xs font-bold mt-2">{product.barcode || product.sku}</p>
             </div>
           </div>

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Counter = require('./Counter');
 
 const saleDetailSchema = new mongoose.Schema({
   product: {
@@ -55,11 +56,11 @@ const saleSchema = new mongoose.Schema({
 // Auto-generate invoice number
 saleSchema.pre('save', async function (next) {
   if (!this.invoiceNumber) {
-    const count = await mongoose.model('Sale').countDocuments();
     const date = new Date();
     const year = date.getFullYear().toString().slice(2);
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    this.invoiceNumber = `INV-${year}${month}-${String(count + 1).padStart(5, '0')}`;
+    const seq = await Counter.next(`sale-${year}${month}`, this.$session());
+    this.invoiceNumber = `INV-${year}${month}-${String(seq).padStart(5, '0')}`;
   }
   this.subtotal = this.items.reduce((sum, item) => sum + item.totalPrice, 0);
   this.tax = (this.subtotal * (this.taxRate / 100));

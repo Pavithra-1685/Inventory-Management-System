@@ -2,9 +2,11 @@ const User = require('../models/User');
 const APIFeatures = require('../utils/apiFeatures');
 
 exports.getUsers = async (req, res) => {
-  const features = new APIFeatures(User.find(), req.query).search(['name', 'email']).filter().sort().paginate();
-  const [users, total] = await Promise.all([features.query, User.countDocuments()]);
-  res.status(200).json({ success: true, count: users.length, total, data: users });
+  const features = new APIFeatures(User.find(), req.query).search(['name', 'email']).filter().sort();
+  const total = await features.count();
+  features.paginate();
+  const users = await features.query;
+  res.status(200).json({ success: true, count: users.length, total, pages: Math.ceil(total / features.limit), data: users });
 };
 
 exports.getUser = async (req, res) => {

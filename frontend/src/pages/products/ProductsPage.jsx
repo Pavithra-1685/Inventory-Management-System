@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
-import { TableSkeleton, PageLoader, EmptyState } from '../../components/ui/Loading';
-import { SearchBar, Pagination, StatusBadge } from '../../components/ui/DataTable';
+import { TableSkeleton, EmptyState } from '../../components/ui/Loading';
+import { SearchBar, Pagination } from '../../components/ui/DataTable';
 import { Modal, ConfirmDialog } from '../../components/ui/Modal';
 import { useAuthStore } from '../../store';
 import { useForm } from 'react-hook-form';
-import { Plus, Edit2, Trash2, Eye, Download, Upload, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Download, AlertTriangle, RefreshCw, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
@@ -106,8 +106,20 @@ export default function ProductsPage() {
     setIsOpenForm(true);
   };
 
-  const handleExport = () => {
-    window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products/export?token=${localStorage.getItem('token')}`, '_blank');
+  const handleExport = async () => {
+    try {
+      const res = await api.get('/products/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'products.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Export failed');
+    }
   };
 
   return (

@@ -5,9 +5,11 @@ const ActivityLog = require('../models/ActivityLog');
 
 exports.getSuppliers = async (req, res) => {
   const features = new APIFeatures(Supplier.find(), req.query)
-    .search(['companyName', 'email', 'contactPerson']).filter().sort().paginate();
-  const [suppliers, total] = await Promise.all([features.query, Supplier.countDocuments()]);
-  res.status(200).json({ success: true, count: suppliers.length, total, data: suppliers });
+    .search(['companyName', 'email', 'contactPerson']).filter().sort();
+  const total = await features.count();
+  features.paginate();
+  const suppliers = await features.query;
+  res.status(200).json({ success: true, count: suppliers.length, total, pages: Math.ceil(total / features.limit), data: suppliers });
 };
 
 exports.getSupplier = async (req, res) => {

@@ -4,6 +4,7 @@ import api from '../../lib/api';
 import { PageLoader } from '../../components/ui/Loading';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/DataTable';
+import toast from 'react-hot-toast';
 
 export default function SaleDetailPage() {
   const { id } = useParams();
@@ -12,7 +13,21 @@ export default function SaleDetailPage() {
     queryFn: async () => (await api.get(`/sales/${id}`)).data.data,
   });
   if (isLoading) return <PageLoader />;
-  const handleInvoice = () => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sales/${id}/invoice?token=${localStorage.getItem('token') || ''}`, '_blank');
+  const handleInvoice = async () => {
+    try {
+      const res = await api.get(`/sales/${id}/invoice`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${sale?.invoiceNumber || id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to download invoice');
+    }
+  };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

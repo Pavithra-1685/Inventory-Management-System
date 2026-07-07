@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Counter = require('./Counter');
 
 const purchaseDetailSchema = new mongoose.Schema({
   product: {
@@ -50,8 +51,8 @@ const purchaseSchema = new mongoose.Schema({
 // Auto-generate purchase number
 purchaseSchema.pre('save', async function (next) {
   if (!this.purchaseNumber) {
-    const count = await mongoose.model('Purchase').countDocuments();
-    this.purchaseNumber = `PO-${String(count + 1).padStart(6, '0')}`;
+    const seq = await Counter.next('purchase', this.$session());
+    this.purchaseNumber = `PO-${String(seq).padStart(6, '0')}`;
   }
   // Compute totals
   this.subtotal = this.items.reduce((sum, item) => sum + item.totalCost, 0);

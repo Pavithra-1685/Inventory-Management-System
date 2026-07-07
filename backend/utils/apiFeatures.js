@@ -9,7 +9,8 @@ class APIFeatures {
 
   search(fields = []) {
     if (this.queryStr.search && fields.length > 0) {
-      const searchRegex = new RegExp(this.queryStr.search, 'i');
+      const escapedSearch = String(this.queryStr.search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
       const searchConditions = fields.map(field => ({ [field]: searchRegex }));
       this.query = this.query.find({ $or: searchConditions });
     }
@@ -55,6 +56,10 @@ class APIFeatures {
     this.page = page;
     this.limit = limit;
     return this;
+  }
+
+  count() {
+    return this.query.model.countDocuments(this.query.getFilter());
   }
 }
 

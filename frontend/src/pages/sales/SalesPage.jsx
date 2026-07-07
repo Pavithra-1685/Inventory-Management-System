@@ -80,9 +80,20 @@ export default function SalesPage() {
     formMutation.mutate({ ...d, items, amountPaid: d.paymentMethod === 'cash' ? total : 0 });
   };
 
-  const handleDownloadInvoice = (id) => {
-    const token = localStorage.getItem('token');
-    window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sales/${id}/invoice?token=${token || ''}`, '_blank');
+  const handleDownloadInvoice = async (id) => {
+    try {
+      const res = await api.get(`/sales/${id}/invoice`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to download invoice');
+    }
   };
 
   return (

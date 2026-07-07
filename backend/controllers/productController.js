@@ -2,10 +2,8 @@ const Product = require('../models/Product');
 const InventoryTransaction = require('../models/InventoryTransaction');
 const ActivityLog = require('../models/ActivityLog');
 const APIFeatures = require('../utils/apiFeatures');
-const { v4: uuidv4 } = require('uuid');
 const bwipjs = require('bwip-js');
 const csv = require('fast-csv');
-const fs = require('fs');
 
 // @desc  Get all products
 // @route GET /api/products
@@ -14,12 +12,11 @@ exports.getProducts = async (req, res) => {
   const features = new APIFeatures(
     Product.find().populate('category', 'name').populate('supplier', 'companyName'),
     req.query
-  ).search(['name', 'sku', 'barcode']).filter().sort().limitFields().paginate();
+  ).search(['name', 'sku', 'barcode']).filter().sort().limitFields();
 
-  const [products, total] = await Promise.all([
-    features.query,
-    Product.countDocuments()
-  ]);
+  const total = await features.count();
+  features.paginate();
+  const products = await features.query;
 
   res.status(200).json({
     success: true,
